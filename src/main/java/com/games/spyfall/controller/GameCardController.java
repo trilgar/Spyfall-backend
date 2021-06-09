@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class GameCardController {
     private final GameCardEntityRepository gameCardEntityRepository;
 
-    @GetMapping(value = "/api/{cardId}",  produces = MediaType.IMAGE_JPEG_VALUE)
+    @GetMapping(value = "/api/images/{cardId}",  produces = MediaType.IMAGE_JPEG_VALUE)
     public byte[] getGameCard(@PathVariable int cardId) {
         return gameCardEntityRepository.getImageById(cardId);
     }

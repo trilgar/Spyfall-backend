@@ -3,9 +3,7 @@ package com.games.spyfall.services.game;
 import com.games.spyfall.config.jwt.JwtProvider;
 import com.games.spyfall.database.gamecards.GameCard;
 import com.games.spyfall.database.gamecards.GameCardEntityRepository;
-import com.games.spyfall.entities.Question;
-import com.games.spyfall.entities.ResponseMessage;
-import com.games.spyfall.entities.WsResponseType;
+import com.games.spyfall.entities.*;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,12 +15,12 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Slf4j
 @Service
 public class GameServiceImpl implements GameService {
-    private final Map<String, WebSocketSession> playerMap;
+    private Map<String, WebSocketSession> playerMap;
+    private Map<String, Set<String>> suspectMap;
 
     private final JwtProvider jwtProvider;
     private final GameCardEntityRepository gameCardEntityRepository;
@@ -34,30 +32,49 @@ public class GameServiceImpl implements GameService {
     GameCard currentLocation;
     GameCard spyCard;
     Question currentQuestion;
-    private final String FRONT_WEBSOCKET_ENDPOINT = "/queue/game/changes";
+    String questionGranted;
+    String answeringPerson;
     boolean gameReadyStatus;
+    boolean gameEnded;
+    boolean spyGuessing;
+
+    private static final String STRING_DATA_TYPE = "string";
+    private static final String GAMECARD_DATA_TYPE = "gameCard";
+    private static final String QUESTION_DTO_DATA_TYPE = "questionDto";
+    private static final String ANSWER_DATA_TYPE = "answer";
+    private static final String SUSPECT_MAP_DATA_TYPE = "suspectMap";
+    private static final String GAME_CONCLUSION_DATA_TYPE = "conclusion";
+    private static final String SPY_BUSTED_DATA_TYPE = "spyBusted";
 
     @Autowired
     public GameServiceImpl(JwtProvider jwtProvider, GameCardEntityRepository gameCardEntityRepository, Gson json) {
         playerMap = new ConcurrentHashMap<>();
+        suspectMap = new ConcurrentHashMap<>();
         random = new Random();
         this.jwtProvider = jwtProvider;
         this.gameCardEntityRepository = gameCardEntityRepository;
         this.gameReadyStatus = false;
         this.json = json;
+        this.spyGuessing = false;
+        this.gameEnded = false;
     }
 
     @Override
-    public void addPlayer(String token, WebSocketSession session) {
+    public void addPlayer(String token, WebSocketSession session) throws IOException {
+        String username = jwtProvider.getLoginFromToken(token);
         if (playerMap.isEmpty()) {
             setHostName(token);
+        }
+        if (gameReadyStatus) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Game already started.")));
+            return;
         }
         String login = jwtProvider.getLoginFromToken(token);
         if (!playerMap.containsKey(login)) {
             playerMap.put(login, session);
             log.info("put new user:" + login);
         }
-        sendMessageToAll(convert(new ResponseMessage(WsResponseType.INFO, "New player connected. Hi, " + login)));
+        sendMessageToAll(new ResponseMessage(WsResponseType.INFO, STRING_DATA_TYPE, "New player connected. Hi, " + login));
 
     }
 
@@ -69,25 +86,204 @@ public class GameServiceImpl implements GameService {
 
     @Override
     public void startGame(String token) throws IOException {
-        if (!jwtProvider.getLoginFromToken(token).equals(hostUserName)) {
+        String username = jwtProvider.getLoginFromToken(token);
+        if (playerMap.size() == 1) {
+            //todo change limit to 3 players
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Need at least 2 players to start")));
+            return;
+        }
+        if (!username.equals(hostUserName)) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "You are not the host.")));
+            return;
+        }
+        if (gameReadyStatus) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Game already started.")));
             return;
         }
         currentLocation = getCurrentLocation();
-        spyCard = gameCardEntityRepository.getByName("spy card");
-        spyUserName = getSpyUserName();
+        spyCard = gameCardEntityRepository.findByName("шпион");
+        spyUserName = getRandomUserName();
+        questionGranted = getRandomUserName();
 
         log.info("current location: " + currentLocation.getName());
         log.info("current spy: " + spyUserName);
 
-        getSessionByName(spyUserName).sendMessage(convert(spyCard));
-        List<WebSocketSession> otherUsersSessions = Stream.of(playerMap.keySet())
-                .map(Object::toString)
+        GameCardDto gameCardDto = new GameCardDto(questionGranted, new Card(spyCard));
+
+        getSessionByName(spyUserName).sendMessage(convert(new ResponseMessage(WsResponseType.ENTITY, GAMECARD_DATA_TYPE, gameCardDto)));
+        List<WebSocketSession> otherUsersSessions = playerMap.keySet().stream()
                 .filter(name -> !spyUserName.equals(name))
                 .map(this::getSessionByName)
                 .collect(Collectors.toList());
-        sendMessageToUsers(otherUsersSessions, currentLocation);
+        gameCardDto = new GameCardDto(questionGranted, new Card(currentLocation));
+        sendMessageToUsers(otherUsersSessions, new ResponseMessage(WsResponseType.ENTITY, GAMECARD_DATA_TYPE, gameCardDto));
         log.info("messages were sent to users");
         gameReadyStatus = true;
+    }
+
+    @Override
+    public void restartGame(String token) throws IOException {
+        String username = jwtProvider.getLoginFromToken(token);
+        if (!username.equals(hostUserName)) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Only host can restart game.")));
+            return;
+        }
+        if (!gameEnded) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "There is no need to restart game.")));
+            return;
+        }
+        suspectMap = new ConcurrentHashMap<>();
+        this.gameReadyStatus = false;
+        this.spyGuessing = false;
+        this.gameEnded = false;
+        playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.INFO, STRING_DATA_TYPE,
+                "Game successfully restarted. Start new game or wait for new players to come.")));
+    }
+
+    @Override
+    public void askQuestion(String token, Question question) throws IOException {
+        String username = jwtProvider.getLoginFromToken(token);
+        if (!gameReadyStatus) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Wait until game starts.")));
+            return;
+        }
+        if (!username.equals(questionGranted)) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "It`s not your turn to ask a question.")));
+            return;
+        }
+        if (spyGuessing) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Wait for the spy to take his decision.")));
+            return;
+        }
+
+
+        QuestionDto questionDto = new QuestionDto();
+        questionDto.setMessage("You are asked the question. You can answer whatever you want.");
+        questionDto.setQuestion(question);
+        ResponseMessage responseMessage = new ResponseMessage(WsResponseType.ENTITY, QUESTION_DTO_DATA_TYPE, questionDto);
+
+        getSessionByName(question.getTarget()).sendMessage(convert(responseMessage));
+
+        questionDto.setMessage("");
+        responseMessage = new ResponseMessage(WsResponseType.ENTITY, QUESTION_DTO_DATA_TYPE, questionDto);
+        List<WebSocketSession> otherUsersSessions = playerMap.keySet().stream()
+                .filter(name -> !question.getTarget().equals(name))
+                .map(this::getSessionByName)
+                .collect(Collectors.toList());
+        sendMessageToUsers(otherUsersSessions, responseMessage);
+
+        answeringPerson = question.getTarget();
+    }
+
+    @Override
+    public void answerQuestion(String token, Answer answer) throws IOException {
+        String username = jwtProvider.getLoginFromToken(token);
+        if (!gameReadyStatus) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Wait until game starts.")));
+            return;
+        }
+        if (!username.equals(answeringPerson)) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Question is not addressed to you.")));
+            return;
+        }
+        if (spyGuessing) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Wait for the spy to take his decision.")));
+            return;
+        }
+
+        sendMessageToAll(new ResponseMessage(WsResponseType.ENTITY, ANSWER_DATA_TYPE, answer));
+
+        questionGranted = answeringPerson;
+        answeringPerson = "";
+    }
+
+    @Override
+    public void suspectPlayer(String token, Suspect suspect) throws IOException {
+        String username = jwtProvider.getLoginFromToken(token);
+        if (!gameReadyStatus) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Wait until game starts.")));
+            return;
+        }
+        if (!username.equals(suspect.getSuspecting())) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "You cannot vote from other name")));
+            return;
+        }
+        if (spyGuessing) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Wait for the spy to take his decision.")));
+            return;
+        }
+        switch (suspect.getAction()) {
+            case SET: {
+                Set<String> suspects = suspectMap.computeIfAbsent(suspect.getSuspected(), (key) -> new TreeSet<>());
+                suspects.add(suspect.getSuspecting());
+                if (playerMap.size() - 1 == suspects.size()) {
+                    endGame(suspect.getSuspected());
+                    return;
+                }
+                suspectMap.put(suspect.getSuspected(), suspects);
+                break;
+            }
+            case REMOVE: {
+                Set<String> suspects = suspectMap.computeIfAbsent(suspect.getSuspected(), (key) -> new TreeSet<>());
+                suspects.remove(suspect.getSuspecting());
+                suspectMap.put(suspect.getSuspected(), suspects);
+                break;
+            }
+            default: {
+                playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Not defined Action (use SET or REMOVE)")));
+                return;
+            }
+        }
+        sendMessageToAll(new ResponseMessage(WsResponseType.ENTITY, SUSPECT_MAP_DATA_TYPE, suspectMap));
+
+    }
+
+    @Override
+    public void endGame(String suspectedSpyName) throws IOException {
+        GameConclusion gameConclusion = new GameConclusion();
+        if (!spyUserName.equals(suspectedSpyName)) {
+            gameConclusion.setWinner(Winner.SPY);
+            gameConclusion.setConclusion("Spy won the game. All players voted for innocent.");
+            gameConclusion.setSpyName(spyUserName);
+            gameConclusion.setLocationName(currentLocation.getName());
+            sendMessageToAll(new ResponseMessage(WsResponseType.ENTITY, GAME_CONCLUSION_DATA_TYPE, gameConclusion));
+            gameReadyStatus = false;
+            gameEnded = true;
+        } else {
+            List<WebSocketSession> otherUsersSessions = playerMap.keySet().stream()
+                    .filter(name -> !spyUserName.equals(name))
+                    .map(this::getSessionByName)
+                    .collect(Collectors.toList());
+            sendMessageToUsers(otherUsersSessions, new ResponseMessage(WsResponseType.INFO, SPY_BUSTED_DATA_TYPE, "Citizens found a spy! He has the last chance to win!"));
+            getSessionByName(spyUserName).sendMessage(convert(new ResponseMessage(WsResponseType.INFO, SPY_BUSTED_DATA_TYPE, "You are busted! You have the last chance to guess the location!")));
+            spyGuessing = true;
+        }
+    }
+
+    @Override
+    public void spyGuess(String token, String locationName) throws IOException {
+        String username = jwtProvider.getLoginFromToken(token);
+        if (!gameReadyStatus) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Wait until game starts.")));
+            return;
+        }
+        if (!username.equals(spyUserName)) {
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "You are not a spy!")));
+            return;
+        }
+        GameConclusion gameConclusion = new GameConclusion();
+        if (locationName.equals(currentLocation.getName())) {
+            gameConclusion.setWinner(Winner.SPY);
+            gameConclusion.setConclusion("Spy won! He guessed right location!");
+        } else {
+            gameConclusion.setWinner(Winner.CITIZENS);
+            gameConclusion.setConclusion("Citizens won! Spy Named wrong location!");
+        }
+        gameConclusion.setLocationName(currentLocation.getName());
+        gameConclusion.setSpyName(spyUserName);
+        sendMessageToAll(new ResponseMessage(WsResponseType.ENTITY, GAME_CONCLUSION_DATA_TYPE, gameConclusion));
+        gameReadyStatus = false;
+        gameEnded = true;
     }
 
     @Override
@@ -132,10 +328,11 @@ public class GameServiceImpl implements GameService {
 
     private GameCard getCurrentLocation() {
         List<Integer> gameCardIds = gameCardEntityRepository.getAllIds();
-        return gameCardEntityRepository.getById(gameCardIds.get(random.nextInt(gameCardIds.size())));
+        Optional<GameCard> gameCard = gameCardEntityRepository.findById(gameCardIds.get(random.nextInt(gameCardIds.size())));
+        return gameCard.orElse(null);
     }
 
-    private String getSpyUserName() {
+    private String getRandomUserName() {
         Set<String> playerUserNames = playerMap.keySet();
         int i = 0;
         int userNumber = random.nextInt(playerUserNames.size());
@@ -145,7 +342,7 @@ public class GameServiceImpl implements GameService {
             }
             i++;
         }
-        return playerUserNames.stream().findFirst().get();
+        return playerUserNames.stream().findFirst().orElse(null);
     }
 
     private TextMessage convert(Object message) {

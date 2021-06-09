@@ -1,6 +1,7 @@
 package com.games.spyfall.database.gamecards;
 
 import lombok.Data;
+import org.hibernate.annotations.Type;
 
 import javax.persistence.*;
 
@@ -15,8 +16,7 @@ public class GameCard {
     @Column
     private String name;
 
-    @Lob
-    @Column(columnDefinition = "BLOB NOT NULL")
+    @Column(columnDefinition = "clob")
     private Byte[] image;
 
 }

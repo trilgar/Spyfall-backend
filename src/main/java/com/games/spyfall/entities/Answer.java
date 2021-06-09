@@ -3,8 +3,7 @@ package com.games.spyfall.entities;
 import lombok.Data;
 
 @Data
-public class Question {
-    private String source;
-    private String target;
+public class Answer {
     private String question;
+    private String answer;
 }

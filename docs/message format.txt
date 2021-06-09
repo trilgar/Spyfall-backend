@@ -1,0 +1,44 @@
+{
+    "event": "REGISTER",
+    "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0cmlsZ2FyIiwiZXhwIjoxNjI0NDgyMDAwfQ.oz5wX1v00Ate8WCPaoM1E_fK2I9smPcPQ0v0zDArqXmL3q8ADGmjINt44uilQ6v5grXrjKb9FR-xTKpLTfPAvA"
+}
+
+{
+    "event": "STARTGAME",
+    "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0cmlsZ2FyIiwiZXhwIjoxNjI0NDgyMDAwfQ.oz5wX1v00Ate8WCPaoM1E_fK2I9smPcPQ0v0zDArqXmL3q8ADGmjINt44uilQ6v5grXrjKb9FR-xTKpLTfPAvA"
+}
+
+{
+    "event": "QUESTION",
+    "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0cmlsZ2FyMSIsImV4cCI6MTYyNDQ4MjAwMH0.iXs8eOvr6n71bunFWoEZWvHnm4fbTGiOioSCJBBBT73F-wYG_sE-djj3i71NeNcB5PeJTtG5tB-pSau-5Z7Byg",
+    "data": {
+        "source": "trilgar1",
+        "target": "trilgar",
+        "question": "text of the question here"
+    }
+}
+
+{
+  "event": "ANSWER",
+  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0cmlsZ2FyIiwiZXhwIjoxNjI0NDgyMDAwfQ.oz5wX1v00Ate8WCPaoM1E_fK2I9smPcPQ0v0zDArqXmL3q8ADGmjINt44uilQ6v5grXrjKb9FR-xTKpLTfPAvA",
+  "data": {
+    "question": "text of the question here",
+    "answer": "ya ne spion otstan"
+  }
+}
+
+{
+  "event": "SUSPECT",
+  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0cmlsZ2FyIiwiZXhwIjoxNjI0NDgyMDAwfQ.oz5wX1v00Ate8WCPaoM1E_fK2I9smPcPQ0v0zDArqXmL3q8ADGmjINt44uilQ6v5grXrjKb9FR-xTKpLTfPAvA",
+  "data": {
+    "suspectAction": "SET",
+    "suspecting": "trilgar",
+    "suspected": "trilgar1"
+  }
+}
+
+{
+  "event": "GUESSLOCATION",
+  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0cmlsZ2FyIiwiZXhwIjoxNjI0NDgyMDAwfQ.oz5wX1v00Ate8WCPaoM1E_fK2I9smPcPQ0v0zDArqXmL3q8ADGmjINt44uilQ6v5grXrjKb9FR-xTKpLTfPAvA",
+  "data": "порт"
+}
