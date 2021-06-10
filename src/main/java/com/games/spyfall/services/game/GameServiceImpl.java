@@ -45,6 +45,7 @@ public class GameServiceImpl implements GameService {
     private static final String SUSPECT_MAP_DATA_TYPE = "suspectMap";
     private static final String GAME_CONCLUSION_DATA_TYPE = "conclusion";
     private static final String SPY_BUSTED_DATA_TYPE = "spyBusted";
+    private static final String PLAYER_LIST_DATA_TYPE = "playerList";
 
     @Autowired
     public GameServiceImpl(JwtProvider jwtProvider, GameCardEntityRepository gameCardEntityRepository, Gson json) {
@@ -62,6 +63,9 @@ public class GameServiceImpl implements GameService {
     @Override
     public void addPlayer(String token, WebSocketSession session) throws IOException {
         String username = jwtProvider.getLoginFromToken(token);
+        if (playerMap.containsKey(username)) {
+            return;
+        }
         if (playerMap.isEmpty()) {
             setHostName(token);
         }
@@ -75,9 +79,15 @@ public class GameServiceImpl implements GameService {
             log.info("put new user:" + login);
         }
         sendMessageToAll(new ResponseMessage(WsResponseType.INFO, STRING_DATA_TYPE, "New player connected. Hi, " + login));
+        sendToAllRenewedPlayerMap();
+        log.info("sending renewed players list");
 
     }
-
+    private void sendToAllRenewedPlayerMap() throws IOException{
+        for (WebSocketSession webSocketSession : playerMap.values()) {
+            sendConnected(webSocketSession);
+        }
+    }
     @Override
     public void setHostName(String token) {
         hostUserName = jwtProvider.getLoginFromToken(token);
@@ -324,6 +334,18 @@ public class GameServiceImpl implements GameService {
         this.currentQuestion = question;
         sendMessageToUsers((List<WebSocketSession>) playerMap.values(), question);
         log.info("question" + question.getQuestion() + "sent to all users");
+    }
+
+    @Override
+    public void sendConnected(WebSocketSession session) throws IOException {
+        List<Player> players = playerMap.keySet().stream().map(username -> {
+            Player pLayer = new Player();
+            pLayer.setUsername(username);
+            pLayer.setSuspecting(suspectMap.computeIfAbsent(username, (key) -> new TreeSet<>()));
+            return pLayer;
+        }).collect(Collectors.toList());
+
+        session.sendMessage(convert(new ResponseMessage(WsResponseType.ENTITY, PLAYER_LIST_DATA_TYPE, players)));
     }
 
     private GameCard getCurrentLocation() {

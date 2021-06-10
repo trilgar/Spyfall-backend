@@ -37,4 +37,6 @@ public interface GameService {
     Boolean getGameReadyStatus();
 
     void askQuestion(Question question);
+
+    void sendConnected(WebSocketSession session) throws IOException;
 }

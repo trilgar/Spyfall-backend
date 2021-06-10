@@ -8,5 +8,6 @@ public enum WsMessageType {
     ANSWER,
     SUSPECT,
     GUESSLOCATION,
-    PING
+    PING,
+    CONNECTED
 }

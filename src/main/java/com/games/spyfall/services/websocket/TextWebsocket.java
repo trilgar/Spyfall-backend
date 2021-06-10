@@ -88,6 +88,13 @@ public class TextWebsocket extends TextWebSocketHandler {
                 gameService.spyGuess(token, parsedMessage.getData().toString());
                 break;
             }
+            case CONNECTED:{
+                gameService.sendConnected(session);
+                break;
+            }
+            case RESTART:{
+                gameService.restartGame(token);
+            }
             default: {
                 session.sendMessage(new TextMessage(json.toJson(new ResponseMessage(WsResponseType.ERROR, "string", "unexpected event type: " + parsedMessage.getEvent()))));
                 break;
