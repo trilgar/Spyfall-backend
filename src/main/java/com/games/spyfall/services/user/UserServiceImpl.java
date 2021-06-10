@@ -4,10 +4,14 @@ import com.games.spyfall.database.security.RoleEntityRepository;
 import com.games.spyfall.database.security.UserEntityRepository;
 import com.games.spyfall.entities.RoleEntity;
 import com.games.spyfall.entities.User;
+import com.games.spyfall.exceptions.NameAlreadyExistException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import javax.naming.NameAlreadyBoundException;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -28,7 +32,12 @@ public class UserServiceImpl implements UserService {
         RoleEntity userRole = roleEntityRepository.findByName("ROLE_USER");
         user.setRoleEntity(userRole);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userEntityRepository.save(user);
+        try{
+            return userEntityRepository.save(user);
+        }catch (DataIntegrityViolationException ex){
+            ex.printStackTrace();
+            throw new NameAlreadyExistException();
+        }
     }
 
     @Override
