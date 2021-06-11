@@ -47,6 +47,7 @@ public class GameServiceImpl implements GameService {
     private static final String SPY_BUSTED_DATA_TYPE = "spyBusted";
     private static final String PLAYER_LIST_DATA_TYPE = "playerList";
     private static final String HOST_DATA_TYPE = "host";
+    private static final String QUESTION_GRANTED_PERSON_DATA_TYPE = "questionGranted";
 
     @Autowired
     public GameServiceImpl(JwtProvider jwtProvider, GameCardEntityRepository gameCardEntityRepository, Gson json) {
@@ -127,6 +128,7 @@ public class GameServiceImpl implements GameService {
                 .collect(Collectors.toList());
         gameCardDto = new GameCardDto(questionGranted, new Card(currentLocation));
         sendMessageToUsers(otherUsersSessions, new ResponseMessage(WsResponseType.ENTITY, GAMECARD_DATA_TYPE, gameCardDto));
+        sendMessageToAll(new ResponseMessage(WsResponseType.ENTITY, QUESTION_GRANTED_PERSON_DATA_TYPE, questionGranted));
         log.info("messages were sent to users");
         gameReadyStatus = true;
     }
@@ -209,6 +211,7 @@ public class GameServiceImpl implements GameService {
         sendMessageToAll(new ResponseMessage(WsResponseType.ENTITY, ANSWER_DATA_TYPE, answer));
 
         questionGranted = answeringPerson;
+        sendMessageToAll(new ResponseMessage(WsResponseType.ENTITY, QUESTION_GRANTED_PERSON_DATA_TYPE, questionGranted));
         answeringPerson = "";
     }
 
