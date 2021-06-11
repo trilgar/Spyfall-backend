@@ -46,6 +46,7 @@ public class GameServiceImpl implements GameService {
     private static final String GAME_CONCLUSION_DATA_TYPE = "conclusion";
     private static final String SPY_BUSTED_DATA_TYPE = "spyBusted";
     private static final String PLAYER_LIST_DATA_TYPE = "playerList";
+    private static final String HOST_DATA_TYPE = "host";
 
     @Autowired
     public GameServiceImpl(JwtProvider jwtProvider, GameCardEntityRepository gameCardEntityRepository, Gson json) {
@@ -63,9 +64,6 @@ public class GameServiceImpl implements GameService {
     @Override
     public void addPlayer(String token, WebSocketSession session) throws IOException {
         String username = jwtProvider.getLoginFromToken(token);
-        if (playerMap.containsKey(username)) {
-            return;
-        }
         if (playerMap.isEmpty()) {
             setHostName(token);
         }
@@ -83,11 +81,13 @@ public class GameServiceImpl implements GameService {
         log.info("sending renewed players list");
 
     }
-    private void sendToAllRenewedPlayerMap() throws IOException{
+
+    private void sendToAllRenewedPlayerMap() throws IOException {
         for (WebSocketSession webSocketSession : playerMap.values()) {
             sendConnected(webSocketSession);
         }
     }
+
     @Override
     public void setHostName(String token) {
         hostUserName = jwtProvider.getLoginFromToken(token);
@@ -143,6 +143,11 @@ public class GameServiceImpl implements GameService {
             return;
         }
         suspectMap = new ConcurrentHashMap<>();
+        playerMap.forEach((key, value) -> {
+            if (!key.equals(hostUserName)) {
+                playerMap.remove(key);
+            }
+        });
         this.gameReadyStatus = false;
         this.spyGuessing = false;
         this.gameEnded = false;
@@ -294,6 +299,11 @@ public class GameServiceImpl implements GameService {
         sendMessageToAll(new ResponseMessage(WsResponseType.ENTITY, GAME_CONCLUSION_DATA_TYPE, gameConclusion));
         gameReadyStatus = false;
         gameEnded = true;
+    }
+
+    @Override
+    public void getHost(WebSocketSession session) throws IOException {
+        session.sendMessage(convert(new ResponseMessage(WsResponseType.ENTITY, HOST_DATA_TYPE, hostUserName)));
     }
 
     @Override

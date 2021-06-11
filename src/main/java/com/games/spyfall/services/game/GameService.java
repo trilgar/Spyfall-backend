@@ -28,6 +28,8 @@ public interface GameService {
 
     void spyGuess(String token, String locationName) throws IOException;
 
+    void getHost(WebSocketSession session) throws IOException;
+
     WebSocketSession getSessionByName(String name);
 
     void sendMessageToUsers(List<WebSocketSession> sessions, Object payload);
