@@ -65,6 +65,9 @@ public class GameServiceImpl implements GameService {
     @Override
     public void addPlayer(String token, WebSocketSession session) throws IOException {
         String username = jwtProvider.getLoginFromToken(token);
+        if (playerMap.containsKey(username)) {
+            return;
+        }
         if (playerMap.isEmpty()) {
             setHostName(token);
         }
@@ -307,6 +310,7 @@ public class GameServiceImpl implements GameService {
     @Override
     public void getHost(WebSocketSession session) throws IOException {
         session.sendMessage(convert(new ResponseMessage(WsResponseType.ENTITY, HOST_DATA_TYPE, hostUserName)));
+        log.info("host " + hostUserName + " was sent");
     }
 
     @Override
