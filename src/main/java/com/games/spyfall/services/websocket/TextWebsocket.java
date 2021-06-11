@@ -96,7 +96,7 @@ public class TextWebsocket extends TextWebSocketHandler {
                 gameService.restartGame(token);
             }
             case GETHOST:{
-
+                gameService.getHost(session);
             }
             default: {
                 session.sendMessage(new TextMessage(json.toJson(new ResponseMessage(WsResponseType.ERROR, "string", "unexpected event type: " + parsedMessage.getEvent()))));
