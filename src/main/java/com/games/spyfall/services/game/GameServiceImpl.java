@@ -63,9 +63,6 @@ public class GameServiceImpl implements GameService {
     @Override
     public void addPlayer(String token, WebSocketSession session) throws IOException {
         String username = jwtProvider.getLoginFromToken(token);
-        if (playerMap.containsKey(username)) {
-            return;
-        }
         if (playerMap.isEmpty()) {
             setHostName(token);
         }
@@ -74,10 +71,8 @@ public class GameServiceImpl implements GameService {
             return;
         }
         String login = jwtProvider.getLoginFromToken(token);
-        if (!playerMap.containsKey(login)) {
-            playerMap.put(login, session);
-            log.info("put new user:" + login);
-        }
+        playerMap.put(login, session);
+        log.info("put new user:" + login);
         sendMessageToAll(new ResponseMessage(WsResponseType.INFO, STRING_DATA_TYPE, "New player connected. Hi, " + login));
         sendToAllRenewedPlayerMap();
         log.info("sending renewed players list");
