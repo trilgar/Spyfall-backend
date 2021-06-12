@@ -51,7 +51,7 @@ public class GameServiceImpl implements GameService {
 
     @Autowired
     public GameServiceImpl(JwtProvider jwtProvider, GameCardEntityRepository gameCardEntityRepository, Gson json) {
-        playerMap = new ConcurrentHashMap<>();
+        playerMap = new HashMap<>();
         suspectMap = new ConcurrentHashMap<>();
         random = new Random();
         this.jwtProvider = jwtProvider;
