@@ -146,7 +146,7 @@ public class GameServiceImpl implements GameService {
             playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Only host can restart game.")));
             return;
         }
-        if (!gameEnded) {
+        if (gameEnded) {
             playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "There is no need to restart game.")));
             return;
         }
