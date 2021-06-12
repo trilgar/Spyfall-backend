@@ -79,6 +79,7 @@ public class GameServiceImpl implements GameService {
         if (!playerMap.containsKey(login)) {
             playerMap.put(login, session);
             log.info("put new user:" + login);
+            log.info("new playerMap"+ playerMap.keySet().toString());
         }
         sendMessageToAll(new ResponseMessage(WsResponseType.INFO, STRING_DATA_TYPE, "New player connected. Hi, " + login));
         sendToAllRenewedPlayerMap();
