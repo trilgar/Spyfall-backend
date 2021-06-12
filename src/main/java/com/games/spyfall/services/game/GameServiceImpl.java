@@ -150,17 +150,22 @@ public class GameServiceImpl implements GameService {
             playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "There is no need to restart game.")));
             return;
         }
+        log.info("Starting restart: ");
         suspectMap = new ConcurrentHashMap<>();
+        List<String> playersToRemove = new ArrayList<>();
+        log.info("players to remove: "+ playersToRemove.toString());
         playerMap.forEach((key, value) -> {
             if (!key.equals(hostUserName)) {
-                playerMap.remove(key);
+                playersToRemove.add(key);
             }
         });
+        playersToRemove.forEach(name -> playerMap.remove(name));
         this.gameReadyStatus = false;
         this.spyGuessing = false;
         this.gameEnded = false;
         playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.INFO, STRING_DATA_TYPE,
                 "Game successfully restarted. Start new game or wait for new players to come.")));
+        log.info("Restart successful");
     }
 
     @Override
