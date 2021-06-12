@@ -166,6 +166,7 @@ public class GameServiceImpl implements GameService {
         this.gameEnded = false;
         this.answeringPerson = "";
         this.questionGranted = "";
+        this.spyGuessing = false;
 
         playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.INFO, STRING_DATA_TYPE,
                 "Game successfully restarted. Start new game or wait for new players to come.")));
