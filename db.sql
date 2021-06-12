@@ -37,6 +37,13 @@ create table game_card
     name  varchar(100) not null,
     image bytea        not null
 );
+create table maps
+(
+    id    serial       not null
+        primary key,
+    name  varchar(100) not null,
+    image bytea        not null
+);
 
 
 
