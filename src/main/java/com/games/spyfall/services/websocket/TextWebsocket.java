@@ -40,7 +40,9 @@ public class TextWebsocket extends TextWebSocketHandler {
     @Override
     public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
         Message parsedMessage = this.json.fromJson(message.getPayload().toString(), Message.class);
-        log.info("parsed message: " + parsedMessage);
+        if(!parsedMessage.getEvent().equals(WsMessageType.PING)){
+            log.info("parsed message: " + parsedMessage);
+        }
         if(parsedMessage.getEvent().equals(WsMessageType.PING)){
             session.sendMessage(new TextMessage(json.toJson(new ResponseMessage(WsResponseType.PING, "string", "PONG"))));
             return;
