@@ -318,6 +318,7 @@ public class GameServiceImpl implements GameService {
     @Override
     public void getHost(WebSocketSession session) throws IOException {
         session.sendMessage(convert(new ResponseMessage(WsResponseType.ENTITY, HOST_DATA_TYPE, hostUserName)));
+        session.sendMessage(convert(new ResponseMessage(WsResponseType.ENTITY, QUESTION_GRANTED_PERSON_DATA_TYPE, questionGranted)));
         log.info("host " + hostUserName + " was sent");
     }
 
