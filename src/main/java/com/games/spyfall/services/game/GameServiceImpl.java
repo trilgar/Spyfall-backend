@@ -68,7 +68,8 @@ public class GameServiceImpl implements GameService {
         if (playerMap.isEmpty()) {
             setHostName(token);
         }
-        if (gameReadyStatus) {
+        if (gameReadyStatus && !playerMap.containsKey(username)) {
+            log.info("GAME ALREADY STARTED. DECLINING new register" + " username");
             playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Game already started.")));
             return;
         }
