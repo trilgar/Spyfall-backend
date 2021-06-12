@@ -72,14 +72,16 @@ public class GameServiceImpl implements GameService {
             playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Game already started.")));
             return;
         }
-        String login = jwtProvider.getLoginFromToken(token);
-        playerMap.put(login, session);
-        log.info("put new user:" + login);
+        putPlayer(username, session);
+        log.info("put new user:" + username);
         log.info("new playerMap"+ playerMap.keySet().toString());
-        sendMessageToAll(new ResponseMessage(WsResponseType.INFO, STRING_DATA_TYPE, "New player connected. Hi, " + login));
+        sendMessageToAll(new ResponseMessage(WsResponseType.INFO, STRING_DATA_TYPE, "New player connected. Hi, " + username));
         sendToAllRenewedPlayerMap();
         log.info("sending renewed players list");
 
+    }
+    private synchronized void putPlayer(String username, WebSocketSession session){
+        playerMap.put(username, session);
     }
 
     private void sendToAllRenewedPlayerMap() throws IOException {
