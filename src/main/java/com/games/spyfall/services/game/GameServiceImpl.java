@@ -248,10 +248,11 @@ public class GameServiceImpl implements GameService {
             case SET: {
                 Set<String> suspects = suspectMap.computeIfAbsent(suspect.getSuspected(), (key) -> new TreeSet<>());
                 suspects.add(suspect.getSuspecting());
+                /* todo remove this
                 if (playerMap.size() - 1 == suspects.size()) {
                     endGame(suspect.getSuspected());
                     return;
-                }
+                }*/
                 suspectMap.put(suspect.getSuspected(), suspects);
                 break;
             }
@@ -266,7 +267,7 @@ public class GameServiceImpl implements GameService {
                 return;
             }
         }
-        sendMessageToAll(new ResponseMessage(WsResponseType.ENTITY, SUSPECT_MAP_DATA_TYPE, suspectMap));
+        sendToAllRenewedPlayerMap();
 
     }
 
