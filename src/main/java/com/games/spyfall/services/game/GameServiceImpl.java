@@ -68,7 +68,7 @@ public class GameServiceImpl implements GameService {
         if (playerMap.isEmpty()) {
             setHostName(token);
         }
-        if(playerMap.containsKey(username)){
+        if (playerMap.containsKey(username)) {
             putPlayer(username, session);
             return;
         }
@@ -79,13 +79,14 @@ public class GameServiceImpl implements GameService {
         }
         putPlayer(username, session);
         log.info("put new user:" + username);
-        log.info("new playerMap"+ playerMap.keySet().toString());
+        log.info("new playerMap" + playerMap.keySet().toString());
         sendMessageToAll(new ResponseMessage(WsResponseType.INFO, STRING_DATA_TYPE, "New player connected. Hi, " + username));
         sendToAllRenewedPlayerMap();
         log.info("sending renewed players list");
 
     }
-    private synchronized void putPlayer(String username, WebSocketSession session){
+
+    private synchronized void putPlayer(String username, WebSocketSession session) {
         playerMap.put(username, session);
     }
 
@@ -153,7 +154,7 @@ public class GameServiceImpl implements GameService {
         log.info("Starting restart: ");
         suspectMap = new ConcurrentHashMap<>();
         List<String> playersToRemove = new ArrayList<>();
-        log.info("players to remove: "+ playersToRemove.toString());
+        log.info("players to remove: " + playersToRemove.toString());
         playerMap.forEach((key, value) -> {
             if (!key.equals(hostUserName)) {
                 playersToRemove.add(key);
@@ -248,11 +249,11 @@ public class GameServiceImpl implements GameService {
             case SET: {
                 Set<String> suspects = suspectMap.computeIfAbsent(suspect.getSuspected(), (key) -> new TreeSet<>());
                 suspects.add(suspect.getSuspecting());
-                /* todo remove this
+
                 if (playerMap.size() - 1 == suspects.size()) {
                     endGame(suspect.getSuspected());
                     return;
-                }*/
+                }
                 suspectMap.put(suspect.getSuspected(), suspects);
                 break;
             }
@@ -330,17 +331,17 @@ public class GameServiceImpl implements GameService {
     public void getGameCard(String token) throws IOException {
         String username = jwtProvider.getLoginFromToken(token);
         log.info("SENDING LOCATION");
-        if(!gameReadyStatus){
+        if (!gameReadyStatus) {
             return;
         }
-        if(!playerMap.containsKey(username)){
+        if (!playerMap.containsKey(username)) {
             playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "You are not participating in game.")));
             return;
         }
         GameCardDto gameCardDto;
-        if(username.equals(spyUserName)){
+        if (username.equals(spyUserName)) {
             gameCardDto = new GameCardDto(questionGranted, new Card(spyCard));
-        }else {
+        } else {
             gameCardDto = new GameCardDto(questionGranted, new Card(currentLocation));
         }
         getSessionByName(username).sendMessage(convert(new ResponseMessage(WsResponseType.ENTITY, GAMECARD_DATA_TYPE, gameCardDto)));
