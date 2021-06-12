@@ -102,6 +102,10 @@ public class TextWebsocket extends TextWebSocketHandler {
                 gameService.getHost(session);
                 break;
             }
+            case GETLOCATION:{
+                gameService.getGameCard(token);
+                break;
+            }
             default: {
                 session.sendMessage(new TextMessage(json.toJson(new ResponseMessage(WsResponseType.ERROR, "string", "unexpected event type: " + parsedMessage.getEvent()))));
                 break;

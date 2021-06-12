@@ -322,6 +322,26 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
+    public void getGameCard(String token) throws IOException {
+        String username = jwtProvider.getLoginFromToken(token);
+        if(!gameReadyStatus){
+            return;
+        }
+        if(!playerMap.containsKey(username)){
+            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "You are not participating in game.")));
+            return;
+        }
+        if(username.equals(spyUserName)){
+            GameCardDto gameCardDto = new GameCardDto(questionGranted, new Card(spyCard));
+            getSessionByName(spyUserName).sendMessage(convert(new ResponseMessage(WsResponseType.ENTITY, GAMECARD_DATA_TYPE, gameCardDto)));
+        }else {
+            GameCardDto gameCardDto = new GameCardDto(questionGranted, new Card(currentLocation));
+            getSessionByName(spyUserName).sendMessage(convert(new ResponseMessage(WsResponseType.ENTITY, GAMECARD_DATA_TYPE, gameCardDto)));
+        }
+
+    }
+
+    @Override
     public WebSocketSession getSessionByName(String name) {
         return playerMap.get(name);
     }

@@ -30,6 +30,8 @@ public interface GameService {
 
     void getHost(WebSocketSession session) throws IOException;
 
+    void getGameCard(String token) throws IOException;
+
     WebSocketSession getSessionByName(String name);
 
     void sendMessageToUsers(List<WebSocketSession> sessions, Object payload);
