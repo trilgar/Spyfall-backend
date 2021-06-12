@@ -324,6 +324,7 @@ public class GameServiceImpl implements GameService {
     @Override
     public void getGameCard(String token) throws IOException {
         String username = jwtProvider.getLoginFromToken(token);
+        log.info("SENDING LOCATION");
         if(!gameReadyStatus){
             return;
         }
@@ -331,14 +332,14 @@ public class GameServiceImpl implements GameService {
             playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "You are not participating in game.")));
             return;
         }
+        GameCardDto gameCardDto;
         if(username.equals(spyUserName)){
-            GameCardDto gameCardDto = new GameCardDto(questionGranted, new Card(spyCard));
-            getSessionByName(spyUserName).sendMessage(convert(new ResponseMessage(WsResponseType.ENTITY, GAMECARD_DATA_TYPE, gameCardDto)));
+            gameCardDto = new GameCardDto(questionGranted, new Card(spyCard));
         }else {
-            GameCardDto gameCardDto = new GameCardDto(questionGranted, new Card(currentLocation));
-            getSessionByName(spyUserName).sendMessage(convert(new ResponseMessage(WsResponseType.ENTITY, GAMECARD_DATA_TYPE, gameCardDto)));
+            gameCardDto = new GameCardDto(questionGranted, new Card(currentLocation));
         }
-
+        getSessionByName(username).sendMessage(convert(new ResponseMessage(WsResponseType.ENTITY, GAMECARD_DATA_TYPE, gameCardDto)));
+        log.info("location sent");
     }
 
     @Override
