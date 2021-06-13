@@ -285,7 +285,7 @@ public class GameServiceImpl implements GameService {
                     .map(this::getSessionByName)
                     .collect(Collectors.toList());
             sendMessageToUsers(otherUsersSessions, new ResponseMessage(WsResponseType.ENTITY, SPY_BUSTED_DATA_TYPE, "Citizens found a spy! He has the last chance to win!"));
-            getSessionByName(spyUserName).sendMessage(convert(new ResponseMessage(WsResponseType.INFO, SPY_BUSTED_DATA_TYPE, "You are busted! You have the last chance to guess the location!")));
+            getSessionByName(spyUserName).sendMessage(convert(new ResponseMessage(WsResponseType.ENTITY, SPY_BUSTED_DATA_TYPE, "You are busted! You have the last chance to guess the location!")));
             spyGuessing = true;
         }
     }
