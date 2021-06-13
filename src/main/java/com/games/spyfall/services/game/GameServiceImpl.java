@@ -147,10 +147,6 @@ public class GameServiceImpl implements GameService {
             playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "Only host can restart game.")));
             return;
         }
-        if (gameEnded) {
-            playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.ERROR, STRING_DATA_TYPE, "There is no need to restart game.")));
-            return;
-        }
         log.info("Starting restart: ");
         suspectMap = new ConcurrentHashMap<>();
         List<String> playersToRemove = new ArrayList<>();
@@ -166,7 +162,6 @@ public class GameServiceImpl implements GameService {
         this.gameEnded = false;
         this.answeringPerson = "";
         this.questionGranted = "";
-        this.spyGuessing = false;
 
         playerMap.get(username).sendMessage(convert(new ResponseMessage(WsResponseType.INFO, STRING_DATA_TYPE,
                 "Game successfully restarted. Start new game or wait for new players to come.")));
@@ -283,13 +278,13 @@ public class GameServiceImpl implements GameService {
             gameConclusion.setLocationName(currentLocation.getName());
             sendMessageToAll(new ResponseMessage(WsResponseType.ENTITY, GAME_CONCLUSION_DATA_TYPE, gameConclusion));
             gameReadyStatus = false;
-            gameEnded = true;
+            gameEnded = false;
         } else {
             List<WebSocketSession> otherUsersSessions = playerMap.keySet().stream()
                     .filter(name -> !spyUserName.equals(name))
                     .map(this::getSessionByName)
                     .collect(Collectors.toList());
-            sendMessageToUsers(otherUsersSessions, new ResponseMessage(WsResponseType.INFO, SPY_BUSTED_DATA_TYPE, "Citizens found a spy! He has the last chance to win!"));
+            sendMessageToUsers(otherUsersSessions, new ResponseMessage(WsResponseType.ENTITY, SPY_BUSTED_DATA_TYPE, "Citizens found a spy! He has the last chance to win!"));
             getSessionByName(spyUserName).sendMessage(convert(new ResponseMessage(WsResponseType.INFO, SPY_BUSTED_DATA_TYPE, "You are busted! You have the last chance to guess the location!")));
             spyGuessing = true;
         }
@@ -318,7 +313,7 @@ public class GameServiceImpl implements GameService {
         gameConclusion.setSpyName(spyUserName);
         sendMessageToAll(new ResponseMessage(WsResponseType.ENTITY, GAME_CONCLUSION_DATA_TYPE, gameConclusion));
         gameReadyStatus = false;
-        gameEnded = true;
+        gameEnded = false;
     }
 
     @Override
